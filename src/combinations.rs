@@ -152,8 +152,8 @@ where
 
 // C(n,k) is binomial coefficient.
 fn c_n_k(n: usize, k: usize) -> usize {
-    let a: usize = (n - k + 1..=n).product();
-    let b: usize = (1..=k).product();
+    let a: usize = (n - k + 1..n+1).product();
+    let b: usize = (1..k+1).product();
     a / b
 }
 

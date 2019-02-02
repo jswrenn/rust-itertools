@@ -593,7 +593,7 @@ fn combinations() {
     assert_eq!(it.nth(2), Some(vec![2, 3]));
     assert_eq!(it.nth(2), None);
 
-    let mut it = (0..=7).combinations(4);
+    let mut it = (0..8).combinations(4);
     assert_eq!(it.nth(1), Some(vec![0, 1, 2, 4]));
     assert_eq!(it.nth(2), Some(vec![0, 1, 2, 7]));
     assert_eq!(it.nth(8), Some(vec![0, 1, 5, 7]));
