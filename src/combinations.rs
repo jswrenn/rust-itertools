@@ -27,10 +27,7 @@ pub fn combinations<I>(iter: I, n: usize) -> Combinations<I>
 where
     I: Iterator,
 {
-    let mut indices: Vec<usize> = Vec::with_capacity(n);
-    for i in 0..n {
-        indices.push(i);
-    }
+    let indices: Vec<usize> = (0..n).collect();
     let mut pool: LazyBuffer<I> = LazyBuffer::new(iter);
 
     for _ in 0..n {
@@ -90,11 +87,7 @@ where
         self.pos += 1;
 
         // Create result vector based on the indices
-        let mut result = Vec::with_capacity(self.n);
-        for i in self.indices.iter() {
-            result.push(self.pool[*i].clone());
-        }
-        Some(result)
+        self.pool.get(&self.indices)
     }
 
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
@@ -142,18 +135,14 @@ where
         self.pos = abs;
 
         // Create result vector based on the indices
-        let mut result = Vec::with_capacity(self.n);
-        for i in self.indices.iter() {
-            result.push(self.pool[*i].clone());
-        }
-        Some(result)
+        self.pool.get(&self.indices)
     }
 }
 
-// C(n,k) is binomial coefficient.
+// C(n,k) is a binomial coefficient.
 fn c_n_k(n: usize, k: usize) -> usize {
-    let a: usize = (n - k + 1..n+1).product();
-    let b: usize = (1..k+1).product();
+    let a: usize = (n - k + 1..n + 1).product();
+    let b: usize = (1..k + 1).product();
     a / b
 }
 
@@ -208,6 +197,17 @@ where
                 false
             }
         }
+    }
+
+    pub fn get(&self, indices: &[usize]) -> Option<Vec<I::Item>>
+    where
+        I::Item: Clone,
+    {
+        let mut result = Vec::with_capacity(indices.len());
+        for i in indices.iter() {
+            result.push(self[*i].clone());
+        }
+        Some(result)
     }
 }
 
