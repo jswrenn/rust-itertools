@@ -1,14 +1,14 @@
-#[macro_use]
-extern crate itertools as it;
+
+#[macro_use] extern crate itertools as it;
 extern crate permutohedron;
 
-use it::cloned;
-use it::free::put_back_n;
-use it::free::rciter;
-use it::multipeek;
-use it::multizip;
-use it::FoldWhile;
 use it::Itertools;
+use it::multizip;
+use it::multipeek;
+use it::free::rciter;
+use it::free::put_back_n;
+use it::FoldWhile;
+use it::cloned;
 
 #[test]
 fn product3() {
@@ -22,7 +22,9 @@ fn product3() {
             }
         }
     }
-    for (_, _, _, _) in iproduct!(0..3, 0..2, 0..2, 0..3) { /* test compiles */ }
+    for (_, _, _, _) in iproduct!(0..3, 0..2, 0..2, 0..3) {
+        /* test compiles */
+    }
 }
 
 #[test]
@@ -49,6 +51,7 @@ fn interleave_shortest() {
     let it = v0.into_iter().interleave_shortest(i1);
     assert_eq!(it.size_hint(), (6, Some(6)));
 }
+
 
 #[test]
 fn unique_by() {
@@ -133,7 +136,7 @@ fn test_put_back_n() {
 
 #[test]
 fn tee() {
-    let xs = [0, 1, 2, 3];
+    let xs  = [0, 1, 2, 3];
     let (mut t1, mut t2) = xs.iter().cloned().tee();
     assert_eq!(t1.next(), Some(0));
     assert_eq!(t2.next(), Some(0));
@@ -156,6 +159,7 @@ fn tee() {
     let (t1, t2) = xs.iter().cloned().tee();
     it::assert_equal(t1.zip(t2), xs.iter().cloned().zip(xs.iter().cloned()));
 }
+
 
 #[test]
 fn test_rciter() {
@@ -180,21 +184,19 @@ fn test_rciter() {
 #[allow(deprecated)]
 #[test]
 fn trait_pointers() {
-    struct ByRef<'r, I: ?Sized>(&'r mut I)
-    where
-        I: 'r;
+    struct ByRef<'r, I: ?Sized>(&'r mut I) where I: 'r;
 
-    impl<'r, X, I: ?Sized> Iterator for ByRef<'r, I>
-    where
-        I: 'r + Iterator<Item = X>,
+    impl<'r, X, I: ?Sized> Iterator for ByRef<'r, I> where
+        I: 'r + Iterator<Item=X>
     {
         type Item = X;
-        fn next(&mut self) -> Option<X> {
+        fn next(&mut self) -> Option<X>
+        {
             self.0.next()
         }
     }
 
-    let mut it = Box::new(0..10) as Box<Iterator<Item = i32>>;
+    let mut it = Box::new(0..10) as Box<Iterator<Item=i32>>;
     assert_eq!(it.next(), Some(0));
 
     {
@@ -214,16 +216,9 @@ fn trait_pointers() {
 
 #[test]
 fn merge_by() {
-    let odd: Vec<(u32, &str)> = vec![(1, "hello"), (3, "world"), (5, "!")];
+    let odd : Vec<(u32, &str)> = vec![(1, "hello"), (3, "world"), (5, "!")];
     let even = vec![(2, "foo"), (4, "bar"), (6, "baz")];
-    let expected = vec![
-        (1, "hello"),
-        (2, "foo"),
-        (3, "world"),
-        (4, "bar"),
-        (5, "!"),
-        (6, "baz"),
-    ];
+    let expected = vec![(1, "hello"), (2, "foo"), (3, "world"), (4, "bar"), (5, "!"), (6, "baz")];
     let results = odd.iter().merge_by(even.iter(), |a, b| a.0 <= b.0);
     it::assert_equal(results, expected.iter());
 }
@@ -237,7 +232,7 @@ fn merge_by_btree() {
     let mut bt2 = BTreeMap::new();
     bt2.insert("foo", 2);
     bt2.insert("bar", 4);
-    let results = bt1.into_iter().merge_by(bt2.into_iter(), |a, b| a.0 <= b.0);
+    let results = bt1.into_iter().merge_by(bt2.into_iter(), |a, b| a.0 <= b.0 );
     let expected = vec![("bar", 4), ("foo", 2), ("hello", 1), ("world", 3)];
     it::assert_equal(results, expected.into_iter());
 }
@@ -279,17 +274,19 @@ fn kmerge_empty_size_hint() {
 #[test]
 fn join() {
     let many = [1, 2, 3];
-    let one = [1];
+    let one  = [1];
     let none: Vec<i32> = vec![];
 
     assert_eq!(many.iter().join(", "), "1, 2, 3");
-    assert_eq!(one.iter().join(", "), "1");
+    assert_eq!( one.iter().join(", "), "1");
     assert_eq!(none.iter().join(", "), "");
 }
 
 #[test]
 fn sorted_by() {
-    let sc = [3, 4, 1, 2].iter().cloned().sorted_by(|&a, &b| a.cmp(&b));
+    let sc = [3, 4, 1, 2].iter().cloned().sorted_by(|&a, &b| {
+        a.cmp(&b)
+    });
     it::assert_equal(sc, vec![1, 2, 3, 4]);
 
     let v = (0..5).sorted_by(|&a, &b| a.cmp(&b).reverse());
@@ -307,7 +304,7 @@ fn sorted_by_key() {
 
 #[test]
 fn test_multipeek() {
-    let nums = vec![1u8, 2, 3, 4, 5];
+    let nums = vec![1u8,2,3,4,5];
 
     let mp = multipeek(nums.iter().map(|&x| x));
     assert_eq!(nums, mp.collect::<Vec<_>>());
@@ -329,6 +326,7 @@ fn test_multipeek() {
     assert_eq!(mp.next(), Some(5));
     assert_eq!(mp.next(), None);
     assert_eq!(mp.peek(), None);
+
 }
 
 #[test]
@@ -348,7 +346,7 @@ fn test_multipeek_reset() {
 #[test]
 fn test_multipeek_peeking_next() {
     use it::PeekingNext;
-    let nums = vec![1u8, 2, 3, 4, 5, 6, 7];
+    let nums = vec![1u8,2,3,4,5,6,7];
 
     let mut mp = multipeek(nums.iter().map(|&x| x));
     assert_eq!(mp.peeking_next(|&x| x != 0), Some(1));
@@ -410,11 +408,11 @@ fn group_by() {
 
         for &idx in &indices[..] {
             let (key, text) = match idx {
-                0 => ('A', "Aaa".chars()),
-                1 => ('B', "Bbb".chars()),
-                2 => ('C', "ccCc".chars()),
-                3 => ('D', "DDDD".chars()),
-                _ => unreachable!(),
+                 0 => ('A', "Aaa".chars()),
+                 1 => ('B', "Bbb".chars()),
+                 2 => ('C', "ccCc".chars()),
+                 3 => ('D', "DDDD".chars()),
+                 _ => unreachable!(),
             };
             assert_eq!(key, subs[idx].0);
             it::assert_equal(&mut subs[idx].1, text);
@@ -439,11 +437,9 @@ fn group_by() {
     {
         let mut ntimes = 0;
         let text = "AABCCC";
-        for (_, sub) in &text.chars().group_by(|&x| {
-            ntimes += 1;
-            x
-        }) {
-            for _ in sub {}
+        for (_, sub) in &text.chars().group_by(|&x| { ntimes += 1; x}) {
+            for _ in sub {
+            }
         }
         assert_eq!(ntimes, text.len());
     }
@@ -451,10 +447,8 @@ fn group_by() {
     {
         let mut ntimes = 0;
         let text = "AABCCC";
-        for _ in &text.chars().group_by(|&x| {
-            ntimes += 1;
-            x
-        }) {}
+        for _ in &text.chars().group_by(|&x| { ntimes += 1; x}) {
+        }
         assert_eq!(ntimes, text.len());
     }
 
@@ -494,7 +488,8 @@ fn group_by_lazy_2() {
         if i < 2 {
             groups.push(group);
         } else if i < 4 {
-            for _ in group {}
+            for _ in group {
+            }
         } else {
             groups.push(group);
         }
@@ -506,11 +501,7 @@ fn group_by_lazy_2() {
     // use groups as chunks
     let data = vec![0, 0, 0, 1, 1, 0, 0, 2, 2, 3, 3];
     let mut i = 0;
-    let grouper = data.iter().group_by(move |_| {
-        let k = i / 3;
-        i += 1;
-        k
-    });
+    let grouper = data.iter().group_by(move |_| { let k = i / 3; i += 1; k });
     for (i, group) in &grouper {
         match i {
             0 => it::assert_equal(group, &[0, 0, 0]),
@@ -561,8 +552,8 @@ fn concat_empty() {
 
 #[test]
 fn concat_non_empty() {
-    let data = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
-    assert_eq!(data.into_iter().concat(), vec![1, 2, 3, 4, 5, 6, 7, 8, 9])
+    let data = vec![vec![1,2,3], vec![4,5,6], vec![7,8,9]];
+    assert_eq!(data.into_iter().concat(), vec![1,2,3,4,5,6,7,8,9])
 }
 
 #[test]
@@ -570,20 +561,19 @@ fn combinations() {
     assert!((1..3).combinations(5).next().is_none());
 
     let it = (1..3).combinations(2);
-    it::assert_equal(it, vec![vec![1, 2]]);
+    it::assert_equal(it, vec![
+        vec![1, 2],
+        ]);
 
     let it = (1..5).combinations(2);
-    it::assert_equal(
-        it,
-        vec![
-            vec![1, 2],
-            vec![1, 3],
-            vec![1, 4],
-            vec![2, 3],
-            vec![2, 4],
-            vec![3, 4],
-        ],
-    );
+    it::assert_equal(it, vec![
+        vec![1, 2],
+        vec![1, 3],
+        vec![1, 4],
+        vec![2, 3],
+        vec![2, 4],
+        vec![3, 4],
+        ]);
 
     assert!((1..3).combinations(0).nth(1).is_none());
     assert_eq!((1..3).combinations(0).nth(0), Some(vec![]));
@@ -595,10 +585,6 @@ fn combinations() {
 
     let mut it = (0..8).combinations(4);
     assert_eq!(it.nth(1), Some(vec![0, 1, 2, 4]));
-    assert_eq!(it.nth(2), Some(vec![0, 1, 2, 7]));
-    assert_eq!(it.nth(8), Some(vec![0, 1, 5, 7]));
-    assert_eq!(it.nth(25), Some(vec![1, 2, 4, 5]));
-    assert_eq!(it.nth(30), None);
 
     it::assert_equal((0..0).tuple_combinations::<(_, _)>(), <Vec<_>>::new());
     it::assert_equal((0..1).tuple_combinations::<(_, _)>(), <Vec<_>>::new());
@@ -618,6 +604,7 @@ fn combinations_of_too_short() {
     }
 }
 
+
 #[test]
 fn combinations_zero() {
     it::assert_equal((1..3).combinations(0), vec![vec![]]);
@@ -631,9 +618,8 @@ fn diff_mismatch() {
     let diff = it::diff_with(a.iter(), b_map, |a, b| *a == b);
 
     assert!(match diff {
-        Some(it::Diff::FirstMismatch(1, _, from_diff)) => {
-            from_diff.collect::<Vec<_>>() == vec![5, 3, 4]
-        }
+        Some(it::Diff::FirstMismatch(1, _, from_diff)) =>
+            from_diff.collect::<Vec<_>>() == vec![5, 3, 4],
         _ => false,
     });
 }
@@ -646,7 +632,8 @@ fn diff_longer() {
     let diff = it::diff_with(a.iter(), b_map, |a, b| *a == b);
 
     assert!(match diff {
-        Some(it::Diff::Longer(_, remaining)) => remaining.collect::<Vec<_>>() == vec![5, 6],
+        Some(it::Diff::Longer(_, remaining)) =>
+            remaining.collect::<Vec<_>>() == vec![5, 6],
         _ => false,
     });
 }
@@ -666,8 +653,8 @@ fn diff_shorter() {
 
 #[test]
 fn minmax() {
-    use it::MinMaxResult;
     use std::cmp::Ordering;
+    use it::MinMaxResult;
 
     // A peculiar type: Equality compares both tuple items, but ordering only the
     // first item.  This is so we can check the stability property easily.
@@ -686,10 +673,7 @@ fn minmax() {
         }
     }
 
-    assert_eq!(
-        None::<Option<u32>>.iter().minmax(),
-        MinMaxResult::NoElements
-    );
+    assert_eq!(None::<Option<u32>>.iter().minmax(), MinMaxResult::NoElements);
 
     assert_eq!(Some(1u32).iter().minmax(), MinMaxResult::OneElement(&1));
 
@@ -702,11 +686,7 @@ fn minmax() {
     assert_eq!(min, &Val(2, 0));
     assert_eq!(max, &Val(0, 2));
 
-    let (min, max) = data
-        .iter()
-        .minmax_by(|x, y| x.1.cmp(&y.1))
-        .into_option()
-        .unwrap();
+    let (min, max) = data.iter().minmax_by(|x, y| x.1.cmp(&y.1)).into_option().unwrap();
     assert_eq!(min, &Val(2, 0));
     assert_eq!(max, &Val(0, 2));
 }
@@ -729,9 +709,8 @@ fn format() {
 
 #[test]
 fn while_some() {
-    let ns = (1..10)
-        .map(|x| if x % 5 != 0 { Some(x) } else { None })
-        .while_some();
+    let ns = (1..10).map(|x| if x % 5 != 0 { Some(x) } else { None })
+                    .while_some();
     it::assert_equal(ns, vec![1, 2, 3, 4]);
 }
 
@@ -740,18 +719,15 @@ fn while_some() {
 fn fold_while() {
     let mut iterations = 0;
     let vec = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    let sum = vec
-        .into_iter()
-        .fold_while(0, |acc, item| {
-            iterations += 1;
-            let new_sum = acc.clone() + item;
-            if new_sum <= 20 {
-                FoldWhile::Continue(new_sum)
-            } else {
-                FoldWhile::Done(acc)
-            }
-        })
-        .into_inner();
+    let sum = vec.into_iter().fold_while(0, |acc, item| {
+        iterations += 1;
+        let new_sum = acc.clone() + item;
+        if new_sum <= 20 {
+            FoldWhile::Continue(new_sum)
+        } else {
+            FoldWhile::Done(acc)
+        }
+    }).into_inner();
     assert_eq!(iterations, 6);
     assert_eq!(sum, 15);
 }

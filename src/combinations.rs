@@ -1,5 +1,5 @@
-use std::fmt;
 use std::ops::Index;
+use std::fmt;
 
 /// An iterator to iterate through all the `n`-length combinations in an iterator.
 /// Note: it iterates over combinations in lexicographic order and
@@ -15,17 +15,15 @@ pub struct Combinations<I: Iterator> {
 }
 
 impl<I> fmt::Debug for Combinations<I>
-where
-    I: Iterator + fmt::Debug,
-    I::Item: fmt::Debug,
+    where I: Iterator + fmt::Debug,
+          I::Item: fmt::Debug,
 {
     debug_fmt_fields!(Combinations, n, indices, pool, pos);
 }
 
 /// Create a new `Combinations` from a clonable iterator.
 pub fn combinations<I>(iter: I, n: usize) -> Combinations<I>
-where
-    I: Iterator,
+    where I: Iterator
 {
     let indices: Vec<usize> = (0..n).collect();
     let mut pool: LazyBuffer<I> = LazyBuffer::new(iter);
@@ -45,9 +43,8 @@ where
 }
 
 impl<I> Iterator for Combinations<I>
-where
-    I: Iterator,
-    I::Item: Clone,
+    where I: Iterator,
+          I::Item: Clone
 {
     type Item = Vec<I::Item>;
     fn next(&mut self) -> Option<Self::Item> {
@@ -154,8 +151,7 @@ struct LazyBuffer<I: Iterator> {
 }
 
 impl<I> LazyBuffer<I>
-where
-    I: Iterator,
+    where I: Iterator
 {
     pub fn new(it: I) -> LazyBuffer<I> {
         let mut it = it;
@@ -200,8 +196,7 @@ where
     }
 
     pub fn get(&self, indices: &[usize]) -> Option<Vec<I::Item>>
-    where
-        I::Item: Clone,
+        where I::Item: Clone,
     {
         let mut result = Vec::with_capacity(indices.len());
         for i in indices.iter() {
@@ -212,9 +207,8 @@ where
 }
 
 impl<I> Index<usize> for LazyBuffer<I>
-where
-    I: Iterator,
-    I::Item: Sized,
+    where I: Iterator,
+          I::Item: Sized
 {
     type Output = I::Item;
 
