@@ -1,5 +1,5 @@
-use std::ops::Index;
 use std::fmt;
+use std::ops::Index;
 
 /// An iterator to iterate through all the `n`-length combinations in an iterator.
 /// Note: it iterates over combinations in lexicographic order and
@@ -137,10 +137,22 @@ impl<I> Iterator for Combinations<I>
 }
 
 // C(n,k) is a binomial coefficient.
+// see https://blog.plover.com/math/choose.html
 fn c_n_k(n: usize, k: usize) -> usize {
-    let a: usize = (n - k + 1..n + 1).product();
-    let b: usize = (1..k + 1).product();
-    a / b
+    match n {
+        _ if k > n => 0,
+        _ if k > n - k => c_n_k(n, n - k),
+        _ => {
+            let mut n = n;
+            let mut r = 1usize;
+            for d in 1..k + 1 {
+                r *= n;
+                r /= d;
+                n -= 1;
+            }
+            r
+        }
+    }
 }
 
 #[derive(Debug)]
