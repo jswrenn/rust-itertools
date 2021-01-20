@@ -1,42 +1,63 @@
 use std::hash::Hash;
-use std::collections::HashMap;
 
 mod private {
-    use std::fmt;
-    use std::hash::Hash;
     use std::collections::HashMap;
+    use std::hash::Hash;
+    use std::fmt;
 
     #[derive(Clone)]
     #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
     pub struct DuplicatesBy<I: Iterator, Key, F> {
         pub(crate) iter: I,
-        pub(crate) used: HashMap<Key, bool>,
-        pub(crate) pending: usize,
-        pub(crate) key_method: F,
+        pub(crate) meta: Meta<Key, F>,
     }
 
     impl<I, V, F> fmt::Debug for DuplicatesBy<I, V, F>
-        where I: Iterator + fmt::Debug,
-              V: fmt::Debug + Hash + Eq,
+    where
+        I: Iterator + fmt::Debug,
+        V: fmt::Debug + Hash + Eq,
     {
-        debug_fmt_fields!(DuplicatesBy, iter, used);
+        debug_fmt_fields!(DuplicatesBy, iter, meta.used);
     }
 
-    impl<I, Key, F> DuplicatesBy<I, Key, F>
-        where I: Iterator,
-              Key: Eq + Hash,
-              F: KeyMethod<Key, I::Item>,
+    impl<I: Iterator, Key, F> DuplicatesBy<I, Key, F> {
+        pub(crate) fn new(iter: I, key_method: F) -> Self {
+            DuplicatesBy {
+                iter,
+                meta: Meta {
+                    used: HashMap::new(),
+                    pending: 0,
+                    key_method,
+                },
+            }
+        }
+    }
+
+    #[derive(Clone)]
+    pub struct Meta<Key, F> {
+        used: HashMap<Key, bool>,
+        pending: usize,
+        key_method: F,
+    }
+
+    impl<Key, F> Meta<Key, F>
+    where
+        Key: Eq + Hash,
     {
         /// Takes an item and returns it back to the caller if it's the second time we see it.
         /// Otherwise the item is consumed and None is returned
-        fn filter(&mut self, item: I::Item) -> Option<I::Item> {
+        #[inline(always)]
+        fn filter<I>(&mut self, item: I) -> Option<I>
+        where
+            F: KeyMethod<Key, I>,
+        {
             let kv = self.key_method.make(item);
             match self.used.get_mut(kv.key_ref()) {
                 None => {
                     self.used.insert(kv.key(), false);
                     self.pending += 1;
                     None
-                },
+                }
                 Some(true) => None,
                 Some(produced) => {
                     *produced = true;
@@ -48,19 +69,16 @@ mod private {
     }
 
     impl<I, Key, F> Iterator for DuplicatesBy<I, Key, F>
-        where I: Iterator,
-              Key: Eq + Hash,
-              F: KeyMethod<Key, I::Item>,
+    where
+        I: Iterator,
+        Key: Eq + Hash,
+        F: KeyMethod<Key, I::Item>,
     {
         type Item = I::Item;
 
         fn next(&mut self) -> Option<Self::Item> {
-            while let Some(v) = self.iter.next() {
-                if let Some(v) = self.filter(v) {
-                    return Some(v)
-                }
-            }
-            None
+            let DuplicatesBy { iter, meta } = self;
+            iter.find_map(|v| meta.filter(v))
         }
 
         #[inline]
@@ -70,8 +88,8 @@ mod private {
             // these items are exactly the same as the ones pending (i.e items seen exactly once so
             // far), plus (hi - pending) / 2 pairs of never seen before items.
             let hi = hi.map(|hi| {
-                let max_pending = std::cmp::min(self.pending, hi);
-                let max_new = std::cmp::max(hi - self.pending, 0) / 2;
+                let max_pending = std::cmp::min(self.meta.pending, hi);
+                let max_new = std::cmp::max(hi - self.meta.pending, 0) / 2;
                 max_pending + max_new
             });
             // The lower bound is always 0 since we might only get unique items from now on
@@ -80,17 +98,14 @@ mod private {
     }
 
     impl<I, Key, F> DoubleEndedIterator for DuplicatesBy<I, Key, F>
-        where I: DoubleEndedIterator,
-              Key: Eq + Hash,
-              F: KeyMethod<Key, I::Item>,
+    where
+        I: DoubleEndedIterator,
+        Key: Eq + Hash,
+        F: KeyMethod<Key, I::Item>,
     {
         fn next_back(&mut self) -> Option<Self::Item> {
-            while let Some(v) = self.iter.next_back() {
-                if let Some(v) = self.filter(v) {
-                    return Some(v)
-                }
-            }
-            None
+            let DuplicatesBy { iter, meta } = self;
+            iter.rev().find_map(|v| meta.filter(v))
         }
     }
 
@@ -103,7 +118,7 @@ mod private {
 
     /// Apply the identity function to elements before checking them for equality.
     pub struct ById;
-    impl<V> KeyMethod<V, V>  for ById {
+    impl<V> KeyMethod<V, V> for ById {
         type Container = JustValue<V>;
 
         fn make(&mut self, v: V) -> Self::Container {
@@ -114,7 +129,8 @@ mod private {
     /// Apply a user-supplied function to elements before checking them for equality.
     pub struct ByFn<F>(pub(crate) F);
     impl<K, V, F> KeyMethod<K, V> for ByFn<F>
-        where F: FnMut(&V) -> K
+    where
+        F: FnMut(&V) -> K,
     {
         type Container = KeyValue<K, V>;
 
@@ -131,8 +147,8 @@ mod private {
         fn value(self) -> V;
     }
 
-    pub struct KeyValue<K,V>(K, V);
-    impl<K,V> KeyXorValue<K, V> for KeyValue<K, V> {
+    pub struct KeyValue<K, V>(K, V);
+    impl<K, V> KeyXorValue<K, V> for KeyValue<K, V> {
         fn key_ref(&self) -> &K {
             &self.0
         }
@@ -166,16 +182,12 @@ pub type DuplicatesBy<I, V, F> = private::DuplicatesBy<I, V, private::ByFn<F>>;
 
 /// Create a new `DuplicatesBy` iterator.
 pub fn duplicates_by<I, Key, F>(iter: I, f: F) -> DuplicatesBy<I, Key, F>
-    where Key: Eq + Hash,
-          F: FnMut(&I::Item) -> Key,
-          I: Iterator,
+where
+    Key: Eq + Hash,
+    F: FnMut(&I::Item) -> Key,
+    I: Iterator,
 {
-    DuplicatesBy {
-        iter,
-        used: HashMap::new(),
-        pending: 0,
-        key_method: private::ByFn(f),
-    }
+    DuplicatesBy::new(iter, private::ByFn(f))
 }
 
 /// An iterator adapter to filter out duplicate elements.
@@ -185,13 +197,9 @@ pub type Duplicates<I> = private::DuplicatesBy<I, <I as Iterator>::Item, private
 
 /// Create a new `Duplicates` iterator.
 pub fn duplicates<I>(iter: I) -> Duplicates<I>
-    where I: Iterator,
-          I::Item: Eq + Hash,
+where
+    I: Iterator,
+    I::Item: Eq + Hash,
 {
-    Duplicates {
-        iter,
-        used: HashMap::new(),
-        pending: 0,
-        key_method: private::ById,
-    }
+    Duplicates::new(iter, private::ById)
 }
